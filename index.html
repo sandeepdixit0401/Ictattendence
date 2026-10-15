@@ -151,14 +151,14 @@
             </div>
             <div class="mb-4">
                 <label class="form-label"><i class="fas fa-lock me-2"></i>Password</label>
-                <input type="password" id="loginPass" class="form-control form-control-lg" placeholder="admin123" required>
+                <input type="password" id="loginPass" class="form-control form-control-lg" placeholder="password" required>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100 login-btn">
                 <i class="fas fa-sign-in-alt me-2"></i> Login
             </button>
         </form>
         <div class="text-center mt-3">
-            <small class="text-muted">Default → <strong>admin</strong> / <strong>admin123</strong></small>
+            <small class="text-muted"><strong></strong> / <strong></strong></small>
         </div>
         <div class="text-center mt-3 developer-credit">
             Developed by <strong>Sandeep Dixit</strong>
@@ -411,7 +411,7 @@
 
     <footer class="text-center py-3 no-print">
         <small class="text-muted">
-            ICT Computer Lab Attendance System &copy; 2024
+            ICT Computer Lab Attendance System &copy; 2026
             &nbsp;|&nbsp; Developed by <strong style="color:#4f46e5">Sandeep Dixit</strong>
         </small>
     </footer>
@@ -455,7 +455,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value;
 
-    if (user === 'admin' && pass === (appData.password || 'admin123')) {
+    if (user === 'sandeep' && pass === (appData.password || 'sandeep123')) {
         sessionStorage.setItem('ictLoggedIn', 'true');
         document.getElementById('loginPage').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
