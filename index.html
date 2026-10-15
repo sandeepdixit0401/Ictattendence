@@ -222,18 +222,18 @@ placeholder='{
         <form id="loginForm">
             <div class="mb-3">
                 <label class="form-label"><i class="fas fa-user me-2"></i>Username</label>
-                <input type="text" id="loginUser" class="form-control form-control-lg" value="admin" required autocomplete="username">
+                <input type="text" id="loginUser" class="form-control form-control-lg" value="username" required autocomplete="username">
             </div>
             <div class="mb-4">
                 <label class="form-label"><i class="fas fa-lock me-2"></i>Password</label>
-                <input type="password" id="loginPass" class="form-control form-control-lg" placeholder="admin123" required autocomplete="current-password">
+                <input type="password" id="loginPass" class="form-control form-control-lg" placeholder="Enter password" required autocomplete="current-password">
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100 login-btn">
                 <i class="fas fa-sign-in-alt me-2"></i> Login
             </button>
         </form>
         <div class="text-center mt-3">
-            <small class="text-muted">Default → <strong>admin</strong> / <strong>admin123</strong></small>
+            <small class="text-muted"> <strong></strong> / <strong></strong></small>
         </div>
         <div class="text-center mt-3 developer-credit">
             Developed by <strong>Sandeep Dixit</strong>
@@ -580,7 +580,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value;
 
-    if (user === 'admin' && pass === (appData.password || 'admin123')) {
+    if (user === 'sandeep' && pass === (appData.password || 'sandeep123')) {
         sessionStorage.setItem('ictLoggedIn', 'true');
         document.getElementById('loginPage').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
