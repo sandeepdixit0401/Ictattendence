@@ -455,7 +455,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value;
 
-    if (user === 'admin' && pass === (appData.password || 'sandeep123')) {
+    if (user === 'admin' && pass === (appData.password || 'admin123')) {
         sessionStorage.setItem('ictLoggedIn', 'true');
         document.getElementById('loginPage').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
