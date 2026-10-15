@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT Lab Attendance | Sandeep Dixit</title>
+    <meta name="description" content="ICT Computer Lab Attendance System - Developed by Sandeep Dixit">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --info: #06b6d4;
+        }
+        * { font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif; box-sizing: border-box; }
+        body { background: #f1f5f9; min-height: 100vh; margin: 0; }
+        
+        /* Login & Setup */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            position: relative;
+            z-index: 10;
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo-circle {
+            width: 76px; height: 76px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
+            color: #fff; font-size: 1.9rem;
+            box-shadow: 0 8px 20px rgba(79,70,229,0.4);
+        }
+        .login-btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none; border-radius: 12px; font-weight: 600;
+            transition: all 0.2s;
+        }
+        .login-btn:hover {
+            background: linear-gradient(135deg, #4338ca, #6d28d9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+        }
+        .floating-icon {
+            position: absolute; color: rgba(255,255,255,0.13); font-size: 2.4rem;
+            animation: float 6s ease-in-out infinite; pointer-events: none;
+        }
+        .icon-1 { top: 12%; left: 8%; }
+        .icon-2 { top: 22%; right: 10%; animation-delay: 1s; font-size: 2.8rem; }
+        .icon-3 { bottom: 18%; left: 12%; animation-delay: 2s; }
+        .icon-4 { bottom: 28%; right: 14%; animation-delay: 3s; }
+        @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-18px); }
+        }
+
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            box-shadow: 0 2px 15px rgba(79,70,229,0.3);
+        }
+        .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
+
+        /* Stats */
+        .stat-card {
+            border-radius: 16px; padding: 18px; color: #fff;
+            display: flex; align-items: center; gap: 14px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            transition: transform 0.2s; height: 100%;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-icon { font-size: 2rem; opacity: 0.9; }
+        .stat-info h3 { font-size: 1.7rem; font-weight: 700; margin: 0; }
+        .stat-info p { margin: 0; font-size: 0.82rem; opacity: 0.9; }
+        .bg-grad-primary { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+        .bg-grad-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .bg-grad-danger  { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .bg-grad-info    { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+        .card { border: none; border-radius: 16px; overflow: hidden; }
+        .card-header { border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+
+        /* Attendance cards */
+        .student-att-card {
+            background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 12px; padding: 14px; text-align: center;
+            transition: all 0.25s;
+        }
+        .student-att-card.present {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        }
+        .student-att-card.absent {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        }
+        .student-name { font-weight: 600; font-size: 0.93rem; color: #1e293b; }
+        .student-roll { font-size: 0.78rem; color: #64748b; }
+
+        .page-header h1 { font-weight: 700; color: #1e293b; }
+        .hidden { display: none !important; }
+        .alert-custom { border-radius: 12px; animation: slideUp 0.3s ease; }
+        
+        .sync-badge {
+            font-size: 0.72rem; background: #10b981; color: #fff;
+            padding: 3px 10px; border-radius: 20px; font-weight: 500;
+        }
+        .sync-badge.offline { background: #ef4444; }
+
+        .developer-credit { font-size: 0.8rem; color: #64748b; }
+        .developer-credit strong { color: #4f46e5; }
+
+        /* Print */
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 15px; }
+            .no-print { display: none !important; }
+            .navbar, footer, #alertBox { display: none !important; }
+            table { font-size: 11px !important; }
+        }
+
+        .setup-steps {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+        .setup-steps a { color: #0369a1; font-weight: 600; }
+        textarea.form-control { font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<!-- ========== SETUP PAGE ========== -->
+<div id="setupPage" class="login-wrapper">
+    <div class="login-card" style="max-width:520px">
+        <div class="text-center mb-3">
+            <div class="logo-circle"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h2 class="fw-bold mb-1">Firebase Setup</h2>
+            <p class="text-muted small mb-0">एक बार सेटअप → सभी कंप्यूटर पर same data</p>
+        </div>
+
+        <div class="setup-steps mb-3">
+            <strong>कैसे करें (3 मिनट):</strong><br>
+            1. <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> खोलें → <b>Create Project</b><br>
+            2. Project बनने के बाद <b>&lt;/&gt;</b> (Web) icon क्लिक करें → App Register<br>
+            3. जो <code>firebaseConfig</code> दिखे उसे पूरा कॉपी करें<br>
+            4. नीचे Paste करें → <b>Save & Continue</b><br>
+            5. Firebase में <b>Realtime Database</b> → Create → <b>Start in test mode</b>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Firebase Config यहाँ Paste करें:</label>
+            <textarea id="firebaseConfigInput" class="form-control font-monospace" rows="7" 
+placeholder='{
+  apiKey: "AIza...",
+  authDomain: "xxx.firebaseapp.com",
+  databaseURL: "https://xxx.firebaseio.com",
+  projectId: "xxx",
+  storageBucket: "xxx.appspot.com",
+  messagingSenderId: "123456",
+  appId: "1:123456:web:abc"
+}'></textarea>
+        </div>
+
+        <button class="btn btn-primary btn-lg w-100 login-btn mb-2" onclick="saveFirebaseConfig()">
+            <i class="fas fa-save me-2"></i> Save & Continue
+        </button>
+
+        <div class="text-center">
+            <button class="btn btn-link btn-sm text-muted" onclick="useLocalMode()">
+                Local Mode (सिर्फ इस कंप्यूटर के लिए)
+            </button>
+        </div>
+
+        <div class="text-center mt-3 developer-credit">
+            Developed by <strong>Sandeep Dixit</strong>
+        </div>
+    </div>
+</div>
+
+<!-- ========== LOGIN PAGE ========== -->
+<div id="loginPage" class="login-wrapper hidden">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <div class="logo-circle"><i class="fas fa-laptop-code"></i></div>
+            <h2 class="fw-bold">ICT Lab Attendance</h2>
+            <p class="text-muted mb-1">कंप्यूटर लैब उपस्थिति प्रबंधन</p>
+            <span id="modeBadge" class="sync-badge">Cloud Sync</span>
+        </div>
+        <div id="loginAlert"></div>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label"><i class="fas fa-user me-2"></i>Username</label>
+                <input type="text" id="loginUser" class="form-control form-control-lg" value="admin" required autocomplete="username">
+            </div>
+            <div class="mb-4">
+                <label class="form-label"><i class="fas fa-lock me-2"></i>Password</label>
+                <input type="password" id="loginPass" class="form-control form-control-lg" placeholder="admin123" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100 login-btn">
+                <i class="fas fa-sign-in-alt me-2"></i> Login
+            </button>
+        </form>
+        <div class="text-center mt-3">
+            <small class="text-muted">Default → <strong>admin</strong> / <strong>admin123</strong></small>
+        </div>
+        <div class="text-center mt-3 developer-credit">
+            Developed by <strong>Sandeep Dixit</strong>
+        </div>
+    </div>
+    <div class="floating-icon icon-1"><i class="fas fa-desktop"></i></div>
+    <div class="floating-icon icon-2"><i class="fas fa-keyboard"></i></div>
+    <div class="floating-icon icon-3"><i class="fas fa-mouse"></i></div>
+    <div class="floating-icon icon-4"><i class="fas fa-wifi"></i></div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="mainApp" class="hidden">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top no-print">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#" onclick="showPage('dashboard')">
+                <i class="fas fa-laptop-code me-2"></i>ICT Lab Attendance
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" id="nav-dashboard" href="#" onclick="showPage('dashboard')"><i class="fas fa-home me-1"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" id="nav-students" href="#" onclick="showPage('students')"><i class="fas fa-users me-1"></i>Students</a></li>
+                    <li class="nav-item"><a class="nav-link" id="nav-attendance" href="#" onclick="showPage('attendance')"><i class="fas fa-clipboard-check me-1"></i>Attendance</a></li>
+                    <li class="nav-item"><a class="nav-link" id="nav-records" href="#" onclick="showPage('records')"><i class="fas fa-history me-1"></i>Records</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><span class="nav-link"><span id="syncStatus" class="sync-badge">● Live</span></span></li>
+                    <li class="nav-item"><span class="nav-link text-light"><i class="fas fa-user-shield me-1"></i>Admin</span></li>
+                    <li class="nav-item"><a class="nav-link text-warning" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-3 px-md-4">
+        <div id="alertBox" class="no-print"></div>
+
+        <!-- DASHBOARD -->
+        <div id="page-dashboard" class="page">
+            <div class="page-header mb-4">
+                <h1 class="h3 mb-1"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard</h1>
+                <p class="text-muted mb-0">आज: <strong id="todayDate"></strong> | ICT Computer Lab</p>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3"><div class="stat-card bg-grad-primary"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="statTotal">0</h3><p>Total Students</p></div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-card bg-grad-success"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statPresent">0</h3><p>Present Today</p></div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-card bg-grad-danger"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h3 id="statAbsent">0</h3><p>Absent Today</p></div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-card bg-grad-info"><div class="stat-icon"><i class="fas fa-chalkboard"></i></div><div class="stat-info"><h3 id="statClasses">0</h3><p>Total Classes</p></div></div></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-bolt me-2 text-warning"></i>Quick Actions</h5></div>
+                        <div class="card-body d-grid gap-2">
+                            <button class="btn btn-primary btn-lg" onclick="showPage('attendance')"><i class="fas fa-clipboard-check me-2"></i>Take Attendance</button>
+                            <button class="btn btn-outline-primary" onclick="showPage('students')"><i class="fas fa-user-plus me-2"></i>Manage Students</button>
+                            <button class="btn btn-outline-secondary" onclick="showPage('records')"><i class="fas fa-search me-2"></i>View Records</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-school me-2 text-info"></i>Classes</h5></div>
+                        <div class="card-body p-0"><div class="list-group list-group-flush" id="dashClasses"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-calendar-alt me-2 text-success"></i>Recent Days</h5></div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light"><tr><th>Date</th><th class="text-success">P</th><th class="text-danger">A</th></tr></thead>
+                                <tbody id="recentTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENTS -->
+        <div id="page-students" class="page hidden">
+            <div class="page-header mb-4">
+                <h1 class="h3 mb-1"><i class="fas fa-users me-2 text-primary"></i>Manage Students</h1>
+                <p class="text-muted">एक बार जोड़ो → सभी कंप्यूटर पर same data</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header bg-primary text-white"><h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Add Class</h6></div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="text" id="newClassName" class="form-control" placeholder="e.g. Class 8A">
+                                <button class="btn btn-primary" onclick="addClass()"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white"><h6 class="mb-0"><i class="fas fa-user-plus me-2"></i>Add Student</h6></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Class</label><select id="addStuClass" class="form-select"></select></div>
+                            <div class="mb-3"><label class="form-label">Name</label><input type="text" id="addStuName" class="form-control" placeholder="Full name"></div>
+                            <div class="mb-3"><label class="form-label">Roll No</label><input type="text" id="addStuRoll" class="form-control" placeholder="Optional"></div>
+                            <button class="btn btn-success w-100" onclick="addStudent()"><i class="fas fa-save me-1"></i>Add Student</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Students List</h5>
+                            <select id="viewClassSelect" class="form-select form-select-sm" style="width:auto" onchange="renderStudentsList()"></select>
+                        </div>
+                        <div class="card-body p-0" id="studentsListArea"></div>
+                    </div>
+                    <div class="card shadow-sm mt-3">
+                        <div class="card-header bg-white"><h6 class="mb-0 text-danger"><i class="fas fa-trash me-2"></i>Delete Class</h6></div>
+                        <div class="card-body"><div class="d-flex flex-wrap gap-2" id="deleteClassArea"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE -->
+        <div id="page-attendance" class="page hidden">
+            <div class="page-header mb-4">
+                <h1 class="h3 mb-1"><i class="fas fa-clipboard-check me-2 text-primary"></i>Take Attendance</h1>
+            </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Class</label>
+                            <select id="attClassSelect" class="form-select form-select-lg" onchange="loadAttendance()"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" id="attDate" class="form-control form-control-lg" onchange="loadAttendance()">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary btn-lg w-100" onclick="loadAttendance()"><i class="fas fa-search me-1"></i>Load</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="attendanceArea"></div>
+        </div>
+
+        <!-- RECORDS -->
+        <div id="page-records" class="page hidden">
+            <div class="page-header mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h1 class="h3 mb-1"><i class="fas fa-history me-2 text-primary"></i>Attendance Records</h1>
+                    <p class="text-muted mb-0">Filter + Print</p>
+                </div>
+                <button class="btn btn-dark no-print" onclick="printRecords()">
+                    <i class="fas fa-print me-2"></i>Print Records
+                </button>
+            </div>
+
+            <div class="card shadow-sm mb-4 no-print">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3"><label class="form-label">Class</label><select id="recClass" class="form-select"><option value="">All</option></select></div>
+                        <div class="col-md-2"><label class="form-label">Date</label><input type="date" id="recDate" class="form-control"></div>
+                        <div class="col-md-2"><label class="form-label">From</label><input type="date" id="recFrom" class="form-control"></div>
+                        <div class="col-md-2"><label class="form-label">To</label><input type="date" id="recTo" class="form-control"></div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button class="btn btn-primary flex-grow-1" onclick="renderRecords()"><i class="fas fa-filter me-1"></i>Filter</button>
+                            <button class="btn btn-outline-secondary" onclick="clearRecFilters()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="printArea">
+                <div class="text-center mb-3 d-none d-print-block">
+                    <h3>ICT Lab Attendance Report</h3>
+                    <p class="mb-0">Developed by Sandeep Dixit</p>
+                    <hr>
+                </div>
+                <div class="row g-3 mb-4" id="recSummary"></div>
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detailed Records</h5>
+                        <span class="text-muted small" id="printDateInfo"></span>
+                    </div>
+                    <div class="card-body p-0" id="recordsTableArea"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-3 no-print">
+        <small class="text-muted">
+            ICT Computer Lab Attendance System &copy; 2024
+            &nbsp;|&nbsp; Developed by <strong style="color:#4f46e5">Sandeep Dixit</strong>
+        </small>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ==================== STATE ====================
+let db = null;
+let isCloud = false;
+let appData = { password: 'admin123', classes: [], students: [], attendance: [] };
+
+// ==================== INIT ====================
+window.onload = function () {
+    const saved = localStorage.getItem('firebaseConfig');
+    if (saved) {
+        try { initFirebase(JSON.parse(saved)); }
+        catch (e) { showSetup(); }
+    } else {
+        showSetup();
+    }
+};
+
+function showSetup() {
+    document.getElementById('setupPage').classList.remove('hidden');
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+}
+
+function useLocalMode() {
+    isCloud = false;
+    document.getElementById('modeBadge').textContent = 'Local Mode';
+    document.getElementById('modeBadge').classList.add('offline');
+    loadLocalData();
+    goToLogin();
+}
+
+function saveFirebaseConfig() {
+    let text = document.getElementById('firebaseConfigInput').value.trim();
+    if (!text) return alert('Firebase Config paste करें');
+
+    // Clean common formats
+    text = text.replace(/^const\s+firebaseConfig\s*=\s*/, '')
+               .replace(/;$/, '')
+               .trim();
+
+    try {
+        const config = eval('(' + text + ')');
+        if (!config.apiKey || !config.databaseURL) {
+            return alert('सही Config paste करें।\ndatabaseURL जरूरी है।\n\nRealtime Database create करना न भूलें!');
+        }
+        localStorage.setItem('firebaseConfig', JSON.stringify(config));
+        initFirebase(config);
+    } catch (e) {
+        alert('Config गलत है। पूरा object सही से paste करें।\n\n' + e.message);
+    }
+}
+
+function initFirebase(config) {
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        db = firebase.database();
+        isCloud = true;
+        document.getElementById('modeBadge').textContent = 'Cloud Sync';
+        document.getElementById('modeBadge').classList.remove('offline');
+
+        db.ref('ictLabData').on('value', snapshot => {
+            const val = snapshot.val();
+            if (val) {
+                appData = val;
+            } else {
+                appData = {
+                    password: 'admin123',
+                    classes: [
+                        { id: 1, name: 'Class 6' }, { id: 2, name: 'Class 7' },
+                        { id: 3, name: 'Class 8' }, { id: 4, name: 'Class 9' },
+                        { id: 5, name: 'Class 10' }
+                    ],
+                    students: [],
+                    attendance: []
+                };
+                saveData();
+            }
+            document.getElementById('syncStatus').textContent = '● Live';
+            document.getElementById('syncStatus').classList.remove('offline');
+
+            if (sessionStorage.getItem('ictLoggedIn') === 'true') {
+                const cur = document.querySelector('.page:not(.hidden)');
+                if (cur) showPage(cur.id.replace('page-', ''));
+            }
+        }, err => {
+            console.error(err);
+            document.getElementById('syncStatus').textContent = '● Offline';
+            document.getElementById('syncStatus').classList.add('offline');
+        });
+
+        goToLogin();
+    } catch (e) {
+        alert('Firebase Error: ' + e.message);
+        showSetup();
+    }
+}
+
+function goToLogin() {
+    document.getElementById('setupPage').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+
+    if (sessionStorage.getItem('ictLoggedIn') === 'true') {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        showPage('dashboard');
+    }
+}
+
+function loadLocalData() {
+    const saved = localStorage.getItem('ictLabAttendanceLocal');
+    if (saved) appData = JSON.parse(saved);
+    else {
+        appData = {
+            password: 'admin123',
+            classes: [
+                { id: 1, name: 'Class 6' }, { id: 2, name: 'Class 7' },
+                { id: 3, name: 'Class 8' }, { id: 4, name: 'Class 9' },
+                { id: 5, name: 'Class 10' }
+            ],
+            students: [], attendance: []
+        };
+        saveData();
+    }
+}
+
+function saveData() {
+    if (isCloud && db) db.ref('ictLabData').set(appData);
+    else localStorage.setItem('ictLabAttendanceLocal', JSON.stringify(appData));
+}
+
+function nextId(arr) {
+    return arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
+}
+
+// ==================== AUTH ====================
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value;
+
+    if (user === 'admin' && pass === (appData.password || 'admin123')) {
+        sessionStorage.setItem('ictLoggedIn', 'true');
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        showPage('dashboard');
+        showAlert('स्वागत है! Login successful', 'success');
+    } else {
+        document.getElementById('loginAlert').innerHTML =
+            '<div class="alert alert-danger alert-custom">गलत Username या Password</div>';
+    }
+});
+
+function logout() {
+    sessionStorage.removeItem('ictLoggedIn');
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('loginPass').value = '';
+}
+
+// ==================== NAV ====================
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + page).classList.remove('hidden');
+    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+    const nav = document.getElementById('nav-' + page);
+    if (nav) nav.classList.add('active');
+
+    if (page === 'dashboard') renderDashboard();
+    if (page === 'students') renderStudentsPage();
+    if (page === 'attendance') renderAttendancePage();
+    if (page === 'records') renderRecordsPage();
+}
+
+function showAlert(msg, type = 'success') {
+    const box = document.getElementById('alertBox');
+    box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show alert-custom">${msg}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    setTimeout(() => box.innerHTML = '', 3500);
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboard() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('todayDate').textContent = today;
+    document.getElementById('statTotal').textContent = appData.students.length;
+    document.getElementById('statClasses').textContent = appData.classes.length;
+
+    const todayAtt = appData.attendance.filter(a => a.date === today);
+    document.getElementById('statPresent').textContent = todayAtt.filter(a => a.status === 'Present').length;
+    document.getElementById('statAbsent').textContent = todayAtt.filter(a => a.status === 'Absent').length;
+
+    document.getElementById('dashClasses').innerHTML = appData.classes.map(c => {
+        const count = appData.students.filter(s => s.classId === c.id).length;
+        return `<a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+            onclick="showPage('attendance');setTimeout(()=>{document.getElementById('attClassSelect').value=${c.id};loadAttendance()},80)">
+            <span><i class="fas fa-graduation-cap me-2 text-muted"></i>${c.name}</span>
+            <span class="badge bg-primary rounded-pill">${count}</span></a>`;
+    }).join('') || '<div class="p-3 text-muted text-center">No classes</div>';
+
+    const dates = {};
+    appData.attendance.forEach(a => {
+        if (!dates[a.date]) dates[a.date] = { p: 0, a: 0 };
+        if (a.status === 'Present') dates[a.date].p++; else dates[a.date].a++;
+    });
+    const sorted = Object.keys(dates).sort().reverse().slice(0, 7);
+    document.getElementById('recentTable').innerHTML = sorted.map(d =>
+        `<tr><td>${d}</td><td><span class="badge bg-success">${dates[d].p}</span></td>
+         <td><span class="badge bg-danger">${dates[d].a}</span></td></tr>`
+    ).join('') || '<tr><td colspan="3" class="text-center text-muted py-3">No records</td></tr>';
+}
+
+// ==================== STUDENTS ====================
+function renderStudentsPage() {
+    const opts = appData.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('addStuClass').innerHTML = opts || '<option>No classes</option>';
+    document.getElementById('viewClassSelect').innerHTML = '<option value="">-- Select Class --</option>' + opts;
+    document.getElementById('deleteClassArea').innerHTML = appData.classes.map(c =>
+        `<button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${c.id})">${c.name} <i class="fas fa-times"></i></button>`
+    ).join('') || '<span class="text-muted">No classes</span>';
+    renderStudentsList();
+}
+
+function renderStudentsList() {
+    const classId = parseInt(document.getElementById('viewClassSelect').value);
+    const area = document.getElementById('studentsListArea');
+    if (!classId) {
+        area.innerHTML = '<div class="p-5 text-center text-muted"><i class="fas fa-hand-pointer fa-3x mb-3"></i><p>Select a class</p></div>';
+        return;
+    }
+    const students = appData.students.filter(s => s.classId === classId);
+    if (!students.length) {
+        area.innerHTML = '<div class="p-5 text-center text-muted"><i class="fas fa-user-slash fa-3x mb-3"></i><p>No students yet</p></div>';
+        return;
+    }
+    let html = `<div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light">
+        <tr><th>#</th><th>Name</th><th>Roll</th><th class="text-end">Action</th></tr></thead><tbody>`;
+    students.forEach((s, i) => {
+        html += `<tr><td>${i + 1}</td><td><strong>${s.name}</strong></td><td>${s.roll || '-'}</td>
+            <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${s.id})"><i class="fas fa-trash"></i></button></td></tr>`;
+    });
+    html += `</tbody></table></div><div class="card-footer text-muted">Total: ${students.length}</div>`;
+    area.innerHTML = html;
+}
+
+function addClass() {
+    const name = document.getElementById('newClassName').value.trim();
+    if (!name) return showAlert('नाम लिखें', 'warning');
+    if (appData.classes.some(c => c.name.toLowerCase() === name.toLowerCase()))
+        return showAlert('पहले से मौजूद है', 'warning');
+    appData.classes.push({ id: nextId(appData.classes), name });
+    saveData();
+    document.getElementById('newClassName').value = '';
+    showAlert(`कक्षा "${name}" जोड़ी गई`, 'success');
+    renderStudentsPage();
+}
+
+function addStudent() {
+    const classId = parseInt(document.getElementById('addStuClass').value);
+    const name = document.getElementById('addStuName').value.trim();
+    const roll = document.getElementById('addStuRoll').value.trim();
+    if (!classId || !name) return showAlert('कक्षा और नाम जरूरी', 'warning');
+    appData.students.push({ id: nextId(appData.students), name, roll, classId });
+    saveData();
+    document.getElementById('addStuName').value = '';
+    document.getElementById('addStuRoll').value = '';
+    showAlert(`"${name}" जोड़ा गया`, 'success');
+    document.getElementById('viewClassSelect').value = classId;
+    renderStudentsList();
+}
+
+function deleteStudent(id) {
+    if (!confirm('हटाना है?')) return;
+    appData.students = appData.students.filter(s => s.id !== id);
+    appData.attendance = appData.attendance.filter(a => a.studentId !== id);
+    saveData();
+    showAlert('हटाया गया', 'info');
+    renderStudentsList();
+}
+
+function deleteClass(id) {
+    if (!confirm('कक्षा और सभी students हट जाएंगे?')) return;
+    appData.classes = appData.classes.filter(c => c.id !== id);
+    appData.students = appData.students.filter(s => s.classId !== id);
+    appData.attendance = appData.attendance.filter(a => a.classId !== id);
+    saveData();
+    showAlert('कक्षा हटाई गई', 'info');
+    renderStudentsPage();
+}
+
+// ==================== ATTENDANCE ====================
+function renderAttendancePage() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('attDate').value = today;
+    document.getElementById('attClassSelect').innerHTML = '<option value="">-- Choose Class --</option>' +
+        appData.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('attendanceArea').innerHTML =
+        '<div class="text-center text-muted py-5"><i class="fas fa-hand-point-up fa-3x mb-3"></i><p class="lead">कक्षा चुनें</p></div>';
+}
+
+function loadAttendance() {
+    const classId = parseInt(document.getElementById('attClassSelect').value);
+    const date = document.getElementById('attDate').value;
+    const area = document.getElementById('attendanceArea');
+    if (!classId || !date) {
+        area.innerHTML = '<div class="text-center text-muted py-5"><p class="lead">कक्षा और दिनांक चुनें</p></div>';
+        return;
+    }
+    const cls = appData.classes.find(c => c.id === classId);
+    const students = appData.students.filter(s => s.classId === classId);
+    if (!students.length) {
+        area.innerHTML = '<div class="alert alert-warning text-center">इस कक्षा में कोई student नहीं है</div>';
+        return;
+    }
+    const existing = {};
+    appData.attendance.filter(a => a.classId === classId && a.date === date)
+        .forEach(a => existing[a.studentId] = a.status);
+
+    let html = `<div class="card shadow-sm">
+        <div class="card-header text-white d-flex justify-content-between align-items-center"
+             style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+            <h5 class="mb-0"><i class="fas fa-users me-2"></i>${cls.name} — ${date}</h5>
+            <span class="badge bg-light text-dark">${students.length} students</span>
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2 mb-3 no-print">
+                <button class="btn btn-success btn-sm" onclick="markAllAtt('Present')"><i class="fas fa-check-double me-1"></i>All Present</button>
+                <button class="btn btn-danger btn-sm" onclick="markAllAtt('Absent')"><i class="fas fa-times me-1"></i>All Absent</button>
+            </div>
+            <div class="row g-3" id="studentCards">`;
+
+    students.forEach(s => {
+        const st = existing[s.id] || 'Present';
+        html += `<div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="student-att-card ${st.toLowerCase()}" data-id="${s.id}">
+                <div class="student-name">${s.name}</div>
+                ${s.roll ? `<div class="student-roll">Roll: ${s.roll}</div>` : ''}
+                <div class="btn-group w-100 mt-2">
+                    <input type="radio" class="btn-check" name="status_${s.id}" id="p_${s.id}" value="Present" ${st === 'Present' ? 'checked' : ''}>
+                    <label class="btn btn-outline-success btn-sm" for="p_${s.id}"><i class="fas fa-check"></i> P</label>
+                    <input type="radio" class="btn-check" name="status_${s.id}" id="a_${s.id}" value="Absent" ${st === 'Absent' ? 'checked' : ''}>
+                    <label class="btn btn-outline-danger btn-sm" for="a_${s.id}"><i class="fas fa-times"></i> A</label>
+                </div>
+            </div></div>`;
+    });
+
+    html += `</div>
+            <div class="text-center mt-4 no-print">
+                <button class="btn btn-primary btn-lg px-5" onclick="saveAttendance()">
+                    <i class="fas fa-save me-2"></i>Save Attendance
+                </button>
+            </div></div></div>`;
+    area.innerHTML = html;
+
+    document.querySelectorAll('#studentCards input').forEach(r => {
+        r.addEventListener('change', function () {
+            const card = this.closest('.student-att-card');
+            card.classList.remove('present', 'absent');
+            card.classList.add(this.value.toLowerCase());
+        });
+    });
+}
+
+function markAllAtt(status) {
+    document.querySelectorAll('#studentCards input').forEach(r => {
+        if (r.value === status) {
+            r.checked = true;
+            const card = r.closest('.student-att-card');
+            if (card) {
+                card.classList.remove('present', 'absent');
+                card.classList.add(status.toLowerCase());
+            }
+        }
+    });
+}
+
+function saveAttendance() {
+    const classId = parseInt(document.getElementById('attClassSelect').value);
+    const date = document.getElementById('attDate').value;
+    const students = appData.students.filter(s => s.classId === classId);
+
+    appData.attendance = appData.attendance.filter(a => !(a.classId === classId && a.date === date));
+    students.forEach(s => {
+        const radio = document.querySelector(`input[name="status_${s.id}"]:checked`);
+        appData.attendance.push({
+            studentId: s.id, classId, date,
+            status: radio ? radio.value : 'Absent'
+        });
+    });
+    saveData();
+    showAlert(`Attendance saved — ${date}`, 'success');
+}
+
+// ==================== RECORDS + PRINT ====================
+function renderRecordsPage() {
+    document.getElementById('recClass').innerHTML = '<option value="">All Classes</option>' +
+        appData.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    renderRecords();
+}
+
+function clearRecFilters() {
+    document.getElementById('recClass').value = '';
+    document.getElementById('recDate').value = '';
+    document.getElementById('recFrom').value = '';
+    document.getElementById('recTo').value = '';
+    renderRecords();
+}
+
+function renderRecords() {
+    const classId = document.getElementById('recClass').value;
+    const exactDate = document.getElementById('recDate').value;
+    const fromDate = document.getElementById('recFrom').value;
+    const toDate = document.getElementById('recTo').value;
+
+    let records = appData.attendance.map(a => {
+        const stu = appData.students.find(s => s.id === a.studentId);
+        const cls = appData.classes.find(c => c.id === a.classId);
+        return {
+            date: a.date,
+            className: cls?.name || '?',
+            studentName: stu?.name || '?',
+            roll: stu?.roll || '-',
+            status: a.status,
+            classId: a.classId
+        };
+    });
+
+    if (classId) records = records.filter(r => r.classId === parseInt(classId));
+    if (exactDate) records = records.filter(r => r.date === exactDate);
+    if (fromDate) records = records.filter(r => r.date >= fromDate);
+    if (toDate) records = records.filter(r => r.date <= toDate);
+
+    records.sort((a, b) => b.date.localeCompare(a.date) || a.className.localeCompare(b.className));
+
+    const present = records.filter(r => r.status === 'Present').length;
+    const absent = records.filter(r => r.status === 'Absent').length;
+
+    document.getElementById('recSummary').innerHTML = `
+        <div class="col-md-4"><div class="stat-card bg-grad-success" style="padding:15px">
+            <div class="stat-icon"><i class="fas fa-check"></i></div>
+            <div class="stat-info"><h3>${present}</h3><p>Present</p></div></div></div>
+        <div class="col-md-4"><div class="stat-card bg-grad-danger" style="padding:15px">
+            <div class="stat-icon"><i class="fas fa-times"></i></div>
+            <div class="stat-info"><h3>${absent}</h3><p>Absent</p></div></div></div>
+        <div class="col-md-4"><div class="stat-card bg-grad-info" style="padding:15px">
+            <div class="stat-icon"><i class="fas fa-list"></i></div>
+            <div class="stat-info"><h3>${records.length}</h3><p>Total</p></div></div></div>`;
+
+    document.getElementById('printDateInfo').textContent = 'Generated: ' + new Date().toLocaleString('en-IN');
+
+    if (!records.length) {
+        document.getElementById('recordsTableArea').innerHTML =
+            '<div class="p-5 text-center text-muted"><i class="fas fa-folder-open fa-3x mb-3"></i><p>No records found</p></div>';
+        return;
+    }
+
+    let html = `<div class="table-responsive"><table class="table table-hover table-striped mb-0">
+        <thead class="table-dark"><tr><th>Date</th><th>Class</th><th>Student</th><th>Roll</th><th>Status</th></tr></thead><tbody>`;
+    records.forEach(r => {
+        const badge = r.status === 'Present'
+            ? '<span class="badge bg-success">Present</span>'
+            : '<span class="badge bg-danger">Absent</span>';
+        html += `<tr><td>${r.date}</td><td>${r.className}</td><td><strong>${r.studentName}</strong></td>
+                 <td>${r.roll}</td><td>${badge}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('recordsTableArea').innerHTML = html;
+}
+
+function printRecords() {
+    window.print();
+}
+</script>
+</body>
+</html>
